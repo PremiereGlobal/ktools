@@ -1,5 +1,10 @@
 #!/bin/bash
 
+#
+# Copyright (c) 2020 Premiere Global Services, Inc.
+# Licensed under MIT License
+#
+
 export KTOOLS_SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 export KTOOLS_VERSION=0.5.0
 

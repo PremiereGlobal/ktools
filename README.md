@@ -98,3 +98,12 @@ containerized version of the tools.
 Docker For Desktop on Mac (and maybe Windows) uses a VM that is detached from
 the host machine network so features like kubectl port-forward or proxy that
 rely on a port being exposed require native kubectl
+
+## Initial Authors/Contributors
+
+* Devin Wilson ([dwilson6](https://github.com/dwilson6))
+* John Langewisch ([jahndis](https://github.com/jahndis))
+* Craig Lewis ([clewis](https://github.com/clewis))
+* Nico Pampe ([NicoPampe](https://github.com/NicoPampe))
+* Justin Martinez ([jmartine](https://github.com/jmartine))
+* Kenji Chapa ([kchapa](https://github.com/kchapa))
