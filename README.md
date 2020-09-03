@@ -1,6 +1,6 @@
 # Ktools
 
-[![License][license-image]][license-url]
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 Ktools is a set of containerized kubernetes-related tools and convenience
 functions. It is an easier way to manage your tools across dev, ci builds,
