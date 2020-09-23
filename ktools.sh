@@ -409,10 +409,16 @@ function kops() {
   # If the end user has $KUBECONFIG set in env var, remap paths to the 
   # container mountpoint and pass it along.
   if [[ -n $KUBECONFIG ]]; then
-      envArgs=("-e KUBECONFIG=${KUBECONFIG/#$HOME//root}")
+    envArgs=("-e KUBECONFIG=${KUBECONFIG/#$HOME//root}")
   fi
 
   check_awscreds || return 1
+
+  # the docker image added a prepended v to the tag in 1.15.0+
+  versionArray=( ${KOPS_VERSION//./ } )
+  if [[ ${versionArray[1]} -ge 15 && "$KOPS_VERSION" != v* ]]; then
+    KOPS_VERSION="v${KOPS_VERSION}"
+  fi
 
   docker run --rm \
     "${dockerArgs[@]}" \
@@ -1108,17 +1114,17 @@ if [[ "$ktools_isSourced" == "true" ]]; then
     fi
 
     echo "Changing version for $tool to $version"
-    declare -x "$versionVarName=$version"
+    export "$versionVarName=$version"
 
     # confirm that the version is valid
     newVersion=$(kversion "$tool" 2> /dev/null)
     if [[ $? -ne 0 || -z "$newVersion" ]]; then
       echo "Failed to switch $tool to version $version. Either the version is invalid or there is not a docker image for that version." >&2
       echo "Please check the $tool releases and the DockerHub tags for the image being used." >&2
-      declare -x "$versionVarName=$ooldVersion"
+      declare -x "$versionVarName=$oldVersion"
       return 1
     fi
-    echo "Successfully changed version for $tool from "$ooldVersion" to $newVersion"
+    echo "Successfully changed version for $tool from "$oldVersion" to $newVersion"
   }
 
   # Export the functions for further use
