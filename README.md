@@ -12,6 +12,12 @@ versions of tools on the fly.
 All you need is `bash`, some version of `docker` (the client and the daemon),
 `grep` and `sed`.
 
+## Install Ktools
+
+You can install ktools via the ktools docker image.
+
+    docker run premiereglobal/ktools:latest wrapper > ktools.sh && chmod u+x ktools.sh
+
 ## Tools it provides
 
 * kops - for managing the k8s cluster itself
@@ -21,7 +27,6 @@ All you need is `bash`, some version of `docker` (the client and the daemon),
   secrets from vault before deploying
 * vault - for secret management
 * terraform - for managing cloud infrastructure as code
-
 
 ## Usage
 
@@ -78,8 +83,43 @@ kvm kubectl auto # use the same kubectl version as the cluster's k8s version
 kvm vault auto # use the vault cli version that matches the vault server
 ```
 
+### Updating Ktools
+
+The ktools update command will run the latest docker image with the args to
+print out the ktools script and write over the current file in place.
+
+    # via executing ktools
+    ./ktools.sh update
+
+    # after sourcing ktools
+    ktools update
+
+## Release A New Version
+
+The ktools docker image is used to install or update ktools. It has commands for
+printing out the ktools version or the whole ktools script. The update command
+checks if the local ktools version is different than the version in the latest
+docker image.
+
+### Bump The Version
+
+After making changes to ktools, make sure to bump the KTOOLS_VERSION env
+variable at the top of ktools.sh
+
+### Build The Image
+
+    docker build -t premiereglobal/ktools:latest .
+
+### Push
+
+    # if not logged in with an account that has permission to push to the premiereglobal org
+    docker login
+
+    docker push premiereglobal/ktools:latest
+
 
 ## Gotchas
+
 There are a few limitations when running cli tools in a docker container.
 
 The main limitation is that the current working directory is mounted into the

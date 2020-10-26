@@ -6,7 +6,8 @@
 #
 
 export KTOOLS_SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-export KTOOLS_VERSION=0.5.0
+export KTOOLS_VERSION=0.6.0
+export WRAPPER_NAME="${BASH_SOURCE[0]}"
 
 ###
 #
@@ -111,17 +112,46 @@ fi
 # TODO: add checks for prereqs like docker, grep, sed, or maybe have
 # those checks be more local to the functions that use them
 
-function check_awscreds() {
-  if [[ -z "${AWS_ACCESS_KEY_ID}" || -z "${AWS_SECRET_ACCESS_KEY}" ]]; then
-    echo "Your AWS credentials are not set in env variables!  Run:"
-    echo "  stim vault login"
-    echo "  \$(stim aws login -a <aws-account> -r <role> -s)"
-    if [[ "$ktools_isSourced" == "true" ]]; then
-      return 1
-    else
-      exit 1
-    fi
+###
+#
+#   Update Functions
+#
+###
+
+function ktools_update() {
+  local LATEST_VERSION="$(ktools_wrapperCommand wrapper-version)"
+  local OLD_VERSION="$KTOOLS_VERSION"
+  if [ "$KTOOLS_VERSION" == "$LATEST_VERSION" ]; then
+    echo "Ktools is already at the latest version: $KTOOLS_VERSION"
+    return
   fi
+  echo "Updating $WRAPPER_NAME"
+  ktools_wrapperCommand wrapper > "$WRAPPER_NAME" && chmod +x "$WRAPPER_NAME"
+  if [[ $? -ne 0 ]]; then
+    echo "Unable to auto update $WRAPPER_NAME" >&2
+    return 1
+  fi
+  echo "Successfully updated $WRAPPER_NAME from $OLD_VERSION to $LATEST_VERSION"
+
+  # source the updated ktools if running update from sourced ktools
+  if [ "$ktools_isSourced" == "true" ]; then
+    source $WRAPPER_NAME
+    if [[ $? -ne 0 ]]; then
+      echo "Unable to source the new version of $WRAPPER_NAME" >&2
+      return 1
+    fi
+    echo "Successfully sourced the new $WRAPPER_NAME version"
+  fi
+}
+
+function ktools_wrapperCommand() {
+  local WRAPPER_DOCKER_IMAGE="premiereglobal/ktools:latest"
+  local WRAPPER_VERSION="$KTOOLS_VERSION"
+  local COMMAND=${1:-"wrapper"}
+  # comment out the pull line when doing local development on ktools
+  docker pull $WRAPPER_DOCKER_IMAGE > /dev/null
+  docker run --rm -e WRAPPER_VERSION $WRAPPER_DOCKER_IMAGE $COMMAND
+  return $?
 }
 
 
@@ -332,6 +362,7 @@ function stim() {
       # normal container has stim as the entrypoint and needs the args as an array
       args=("stim $*")
     fi
+    # TODO: add winpty fix
     docker run --rm \
       "${dockerArgs[@]}" \
       ${interactiveArgs} \
@@ -848,6 +879,19 @@ function kversion() {
   return $?
 }
 
+function check_awscreds() {
+  if [[ -z "${AWS_ACCESS_KEY_ID}" || -z "${AWS_SECRET_ACCESS_KEY}" ]]; then
+    echo "Your AWS credentials are not set in env variables!  Run:"
+    echo "  stim vault login"
+    echo "  \$(stim aws login -a <aws-account> -r <role> -s)"
+    if [[ "$ktools_isSourced" == "true" ]]; then
+      return 1
+    else
+      exit 1
+    fi
+  fi
+}
+
 # This function only works when sourced
 # This is a convenience function for getting aws credentials
 # If you run `awscreds -a <aws-account> -r <role>` this will export the aws
@@ -877,6 +921,8 @@ function execute_cmd() {
   elif [[ "$cmd" == "help" ]]; then
     usage
     return 0
+  elif [[ "$cmd" == "update" ]]; then
+      ktools_update "${@:1}"
   elif [[ "$cmd" =~ ^(kubectl|lenny|helm|vault|stim|kops|terraform|kswitch|kclustername|kcurrent|kcontexts|kubeconfig|kclusters|klogs|knamespace|kpod|kversion)$ ]]; then
     $cmd "$@"
   elif [[ "$cmd" =~ ^(config|kvm|kconfig|awscreds)$ ]]; then
@@ -899,6 +945,8 @@ function usage() {
   echo "Commands:"
   echo "  ktools - print out usage or specify one of the other commands after it"
   echo "    to execute the command"
+  echo ""
+  echo "  ktools update - Update the ktools script to the latest version in place"
   echo ""
   # this is only available if the tools were sourced
   if [[ "$ktools_isSourced" == "true" ]]; then
@@ -1136,6 +1184,8 @@ if [[ "$ktools_isSourced" == "true" ]]; then
 
     if [[ "$1" == "config" ]]; then
       kconfig "${@:2}"
+    elif [[ "$1" == "update" ]]; then
+      ktools_update "${@:2}"
     else
       execute_cmd "$@"
     fi
